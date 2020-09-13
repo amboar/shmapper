@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2020,2021 IBM Corp.
+
+FUZZ_SRCS=fuzz/alloc.c fuzz/vec.c fuzz/hash.c fuzz/set.c fuzz/interface.c fuzz/connection.c
+FUZZ_OBJS=$(FUZZ_SRCS:%.c=%.o)
+FUZZ_PROFS=$(FUZZ_SRCS:%.c=%.gcno) $(FUZZ_SRCS:%.c=%.gcda)
+FUZZ_DEPS=$(FUZZ_SRCS:%.c=%.d)
+FUZZ_BINS=$(FUZZ_SRCS:%.c=%)
+
+$(FUZZ_BINS): CFLAGS += -DSHMAPPER_SONAME='"$(SHMAPPER_SONAME)"' -DSHMAPPER_VERSION='"$(SHMAPPER_VERSION)"'
+$(FUZZ_BINS): % : %.o $(SHMAP_SONAME) $(SHMAPPER_SONAME)
+
+.PHONY: fuzz
+fuzz: fuzz/alloc fuzz/vec fuzz/hash fuzz/set fuzz/interface fuzz/connection
+
+.PHONY: clean-fuzz
+clean-fuzz:
+	$(RM) $(FUZZ_OBJS) $(FUZZ_BINS) $(FUZZ_DEPS)
+
+.PHONY: $(subst /,-,$(FUZZ_BINS))
+fuzz-alloc: fuzz/alloc
+	LD_LIBRARY_PATH=$(realpath .) $(realpath .)/$^ 2
+
+fuzz-vec fuzz-hash fuzz-set fuzz-interface fuzz-connection: fuzz-%: fuzz/%
+	LD_LIBRARY_PATH=$(realpath .) $(realpath .)/$^
+
+-include $(FUZZ_DEPS)

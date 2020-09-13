@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright (C) 2020,2021 IBM Corp.
+
+SHMAP_SRCS=alloc.c pool.c shmap.c vec.c hash.c set.c map.c
+SHMAP_OBJS=$(SHMAP_SRCS:%.c=%.o)
+SHMAP_PROFS=$(SHMAP_SRCS:%.c=%.gcno) $(SHMAP_SRCS:%.c=%.gcda)
+SHMAP_DEPS=$(SHMAP_SRCS:%.c=%.d)
+SHMAP_MAJOR=0
+SHMAP_MINOR=0
+SHMAP_PATCH=0
+SHMAP_VERSION=$(SHMAP_MAJOR).$(SHMAP_MINOR).$(SHMAP_PATCH)
+SHMAP_NAME=libshmap.so
+
+# semver
+SHMAP_SONAME=$(SHMAP_NAME).$(SHMAP_MAJOR)
+SHMAP_EXACT=$(SHMAP_NAME).$(SHMAP_VERSION)
+
+$(SHMAP_SONAME): $(SHMAP_EXACT)
+	ln -sf $(SHMAP_EXACT) $(SHMAP_SONAME)
+
+.PHONY: clean-$(SHMAP_SONAME)
+clean-$(SHMAP_SONAME):
+	$(RM) $(SHMAP_OBJS) $(SHMAP_DEPS) $(SHMAP_EXACT) $(SHMAP_SONAME)
+	$(RM) $(SHMAP_PROFS)
+
+$(SHMAP_EXACT): CFLAGS += -fPIC
+$(SHMAP_EXACT): LDFLAGS += -shared
+$(SHMAP_EXACT): $(SHMAP_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+
+-include $(SHMAP_DEPS)
